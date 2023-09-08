@@ -1,4 +1,5 @@
-  local library = {
+print('PPHUD UI Rewrite By Ayos')
+local library = {
     flags = {}
   }
   library.Flags = library.flags
