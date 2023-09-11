@@ -2688,14 +2688,7 @@ do
         Parent = ScreenGui;
     });
 
-    Library:Create('UIListLayout', {
-        Padding = UDim.new(0, 4);
-        FillDirection = Enum.FillDirection.Vertical;
-        SortOrder = Enum.SortOrder.LayoutOrder;
-        Parent = Library.NotificationArea;
-    });
-
-local TweenService = game:GetService("TweenService")
+   local RunService = game:GetService("RunService")
 
 local WatermarkOuter = Library:Create('Frame', {
     BorderColor3 = Color3.new(0, 0, 0);
@@ -2712,14 +2705,6 @@ local WatermarkInner = Library:Create('Frame', {
     Size = UDim2.new(1, 0, 1, 0);
     ZIndex = 201;
     Parent = WatermarkOuter;
-});
-
-local GradientForWatermark = Library:Create('UIGradient', {
-    Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Library.MainColor),
-        ColorSequenceKeypoint.new(1, Color3.new(0, 0, 0))
-    });
-    Parent = WatermarkInner;
 });
 
 local InnerFrame = Library:Create('Frame', {
@@ -2744,28 +2729,43 @@ Library.Watermark = WatermarkOuter;
 Library.WatermarkText = WatermarkLabel;
 Library:MakeDraggable(Library.Watermark);
 
-local function AnimateWatermarkGradient()
-    local tweenInfo = TweenInfo.new(
-        5, -- Duration of the animation
-        Enum.EasingStyle.Linear,
-        Enum.EasingDirection.InOut,
-        -1, -- loop infinitely
-        true, -- use reversed (yo-yo) mode
-        0
-    )
+local lineSize = 1
+local lineHeight = WatermarkInner.Size.Y.Offset
+local totalWidth = WatermarkInner.Size.X.Offset
+local spacing = 5
 
-    local goals = {}
-    goals.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.new(0, 0, 0)),
-        ColorSequenceKeypoint.new(1, Library.MainColor)
-    })
-
-    local tween = TweenService:Create(GradientForWatermark, tweenInfo, goals)
-    tween:Play()
+local function CreateMovingLine()
+    local line = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor;
+        Size = UDim2.new(0, lineSize, 0, lineHeight);
+        Position = UDim2.new(0, 0, 0, 0);
+        ZIndex = 202;
+        Parent = WatermarkInner;
+    });
+    
+    local linePosition = 0
+    local direction = spacing
+    
+    return function(step)
+        line.Position = UDim2.new(0, linePosition, 0, 0)
+        linePosition = linePosition + direction
+        
+        if linePosition > totalWidth or linePosition < 0 then
+            direction = -direction
+        end
+    end
 end
 
--- Call the function to start the animation:
-AnimateWatermarkGradient()
+local lines = {}
+for i = 1, math.floor(totalWidth / (lineSize + spacing)) do
+    table.insert(lines, CreateMovingLine())
+end
+
+RunService.RenderStepped:Connect(function(step)
+    for _, updateLine in pairs(lines) do
+        updateLine(step)
+    end
+end)
 
 
 
